@@ -1,5 +1,5 @@
 # Lab-Tracker
-A full-stack laboratory inventory app built with React and JavaScript.
+A full-stack laboratory inventory app built with React.js frontend and Node.js backend.
 
 This is a newer version of the previous 'Lab-checkout' project.
 The major change is the use of React.js framework instead of Vanilla JS.
@@ -24,6 +24,9 @@ The major change is the use of React.js framework instead of Vanilla JS.
 1. [Fork this repository](https://docs.github.com/en/get-started/quickstart/fork-a-repo)
 1. [Select a hosting service](https://duckduckgo.com/?q=list+of+web+hosting+services&t=lm&ia=web)
 1. Follow their instructions to host from a GitHub repository
+1. [Developers] To host this website on your localhost,
+    go to '/frontend-react' and type `pnpm dev --host` on your command line to start the frontend,
+    go to '/backend-node' and type `npm run dev` to start the backend.
 
 #### How to use the app
 
