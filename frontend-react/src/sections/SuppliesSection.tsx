@@ -23,7 +23,7 @@ export default function SuppliesSection() {
   const { data, isLoading } = useQuery(
     ["supplies", query, category.value, status.join(","), before, after],
     async () => {
-      const url = new URL("http://localhost:8080.supplies");
+      const url = new URL("http://localhost:8080/supplies");
       url.searchParams.append("query", query);
       url.searchParams.append("category", category.value);
       url.searchParams.append("status", status.join(","));
