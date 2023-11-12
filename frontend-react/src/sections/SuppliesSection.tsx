@@ -35,9 +35,7 @@ export default function SuppliesSection() {
         "expiresAfter",
         after ? new Date(after).toISOString() : ""
       );
-
       const res = await axios.get(url.toString());
-
       return res.data;
     }
   );

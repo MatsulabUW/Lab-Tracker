@@ -20,6 +20,11 @@ app.use(cors()); // Cross-allows all origins
 
 require("./routes")(app);
 
+// Debugging endpoint to check if server is running
+app.get("/message", (req, res) => {
+  res.json({ message: "Hello from server!" });
+});
+
 app.use(express.static("public"));
 const PORT = process.env.PORT || DEFAULT_PORT;
 app.listen(PORT); // Run the server on port 8000

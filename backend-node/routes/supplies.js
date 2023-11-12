@@ -1,11 +1,6 @@
 const getDBConnection = require("../database/db.js");
 
 module.exports = function (app) {
-  // Debugging endpoint to check if server is running
-  app.get("/message", (req, res) => {
-    res.json({ message: "Hello from server!" });
-  });
-
   app.get("/supplies", async (req, res) => {
     try {
       const db = await getDBConnection();
@@ -13,93 +8,80 @@ module.exports = function (app) {
       const { query, category, status, expiresBefore, expiresAfter } =
         req.query;
 
-      console.log("query: ", query);
+      console.log("req.query: ", req.query);
 
-      // Here you would typically fetch data from a database or another source
-      // For this example, we're just returning the received parameters
-      const responseData = {
-        query: query,
-        category: category,
-        status: status ? status.split(",") : [],
-        expiresBefore: expiresBefore,
-        expiresAfter: expiresAfter,
-      };
+      let sqlQuery = "SELECT * FROM Supplies WHERE 1=1";
+      let queryParams = [];
 
-      let results = await db.all(query);
+      if (query) {
+        sqlQuery += " AND item_name LIKE ?";
+        queryParams.push(`%${query}%`);
+      }
 
-      res = await getAllItems("Supplies");
+      if (category) {
+        sqlQuery += " AND category = ?";
+        queryParams.push(category);
+      }
 
-      res.json(responseData);
+      if (status) {
+        const today = new Date().toISOString();
+        const twoWeeksLater = new Date(
+          Date.now() + 14 * 24 * 60 * 60 * 1000
+        ).toISOString();
 
+        const statuses = status.split(",");
+        let statusConditions = [];
+
+        statuses.forEach((statusValue) => {
+          switch (statusValue.trim()) {
+            case "need-to-order":
+              statusConditions.push(`(expire <= ? OR num_in_stock < 5)`);
+              queryParams.push(twoWeeksLater);
+              break;
+            case "out-of-stock":
+              statusConditions.push(`num_in_stock < 1`);
+              break;
+            case "expired":
+              statusConditions.push(`expire < ?`);
+              queryParams.push(today);
+              break;
+          }
+        });
+
+        if (statusConditions.length > 0) {
+          sqlQuery += ` AND (${statusConditions.join(" OR ")})`;
+        }
+      }
+
+      if (expiresBefore) {
+        sqlQuery += " AND expire <= ?";
+        queryParams.push(new Date(expiresBefore).toISOString());
+      }
+
+      if (expiresAfter) {
+        sqlQuery += " AND expire >= ?";
+        queryParams.push(new Date(expiresAfter).toISOString());
+      }
+
+      console.log("sqlQuery: ", sqlQuery);
+      console.log("queryParams: ", queryParams);
+
+      let results = await db.all(sqlQuery, queryParams);
+
+      const supplies = results.map((item) => ({
+        ID: item.item_id,
+        type: "supply",
+        Name: item.item_name,
+        ImageURL: item.image_url,
+        Expires: item.expire,
+        Stock: item.num_in_stock,
+      }));
+
+      res.json({ supplies });
       await db.close();
     } catch (error) {
+      console.error(error);
       res.status(500).send("Database error");
     }
   });
 };
-
-/**
- * Get all items data / get specific item data by id
- */
-app.get("/items", async (req, res) => {
-  let itemType = req.query.itemType; // 'Supplies', 'Equipment'
-  let id = req.query.id; // ID of item 'item_id'
-  let results = undefined;
-  if (!itemType) {
-    res
-      .status(CLNT_ERR)
-      .type("text")
-      .send("Missing one or more of the required params.");
-  } else {
-    if (!id) {
-      results = await getAllItems(itemType);
-    } else {
-      results = await getItemById(itemType, id);
-    }
-    if (results === "An error occurred on the server. Try again later.") {
-      res
-        .status(SRVR_ERR)
-        .type("text")
-        .send("An error occurred on the server. Try again later.");
-    } else {
-      res.json({ items: results });
-    }
-  }
-});
-
-/**
- * getAllItems:
- * One sentence Description
- * @param {*} itemType - what is this variable
- * @returns {String} what do we return?
- */
-async function getAllItems(itemType) {
-  try {
-    let db = await getDBConnection();
-    let query = "SELECT * FROM " + itemType;
-    let results = await db.all(query);
-    await db.close();
-    return results;
-  } catch (err) {
-    return "An error occurred on the server. Try again later.";
-  }
-}
-
-/**
- * getItemById
- * one sentence Description
- * @param {*} itemType - What does this variable represent?
- * @param {*} id - What does this variable represent?
- * @returns {String} What do we return?
- */
-async function getItemById(itemType, id) {
-  try {
-    let db = await getDBConnection();
-    let query = "SELECT * FROM " + itemType + " WHERE item_id = ?";
-    let results = await db.all(query, id);
-    await db.close();
-    return results;
-  } catch (err) {
-    return "An error occurred on the server. Try again later.";
-  }
-}
